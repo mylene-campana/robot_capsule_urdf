@@ -27,11 +27,13 @@ import csv
 
 from urdf_parser_py.urdf import *
 
-parser = argparse.ArgumentParser(usage='robot_capsule_urdf <options> urdf_file capsule_param\nLoad an URDF file')
+parser = argparse.ArgumentParser(usage='robot_capsule_urdf <options> urdf_file capsule_param visual_geometry\nLoad an URDF file')
 parser.add_argument('urdf_file', type=argparse.FileType('r'), nargs='?',
                     default=None, help='Urdf file. Use - for stdin')
 parser.add_argument('capsule_param', type=argparse.FileType('r'), nargs='?',
                     default=None, help='csv file with capsule parameters')
+parser.add_argument('visual_geometry', type=str, nargs='?',
+                    default=None, help='Consider or not capsule geometry for display in RViz or for collision detection. Use collision, visual or both.')                    
 parser.add_argument('-o', '--output', type=argparse.FileType('w'),
                     default=None, help='Dump file to XML')
 args = parser.parse_args()
@@ -48,16 +50,49 @@ param_reader = csv.reader(open(args.capsule_param.name, 'rb'),
                           delimiter=' ', quotechar='|')
 
 for row in param_reader:
-    for link in links:
-        if row[0] == link.name:
-            cylinder = Cylinder (float (row[2]), float (row[1]))
-            link.collision.geometry = cylinder
-            link.collision.origin.position[0] = float (row[3])
-            link.collision.origin.position[1] = float (row[4])
-            link.collision.origin.position[2] = float (row[5])
-            link.collision.origin.rotation[0] = float (row[6])
-            link.collision.origin.rotation[1] = float (row[7])
-            link.collision.origin.rotation[2] = float (row[8])
+    if (args.visual_geometry == 'collision') or (args.visual_geometry == 'both'):
+        for link in links:
+            if row[0] == link.name:
+                cylinder = Cylinder (float (row[2]), float (row[1]))
+                link.collision.geometry = cylinder
+                link.collision.origin.position[0] = float (row[3])
+                link.collision.origin.position[1] = float (row[4])
+                link.collision.origin.position[2] = float (row[5])
+                link.collision.origin.rotation[0] = float (row[6])
+                link.collision.origin.rotation[1] = float (row[7])
+                link.collision.origin.rotation[2] = float (row[8])
+                
+    if (args.visual_geometry == 'visual') or (args.visual_geometry == 'both'):
+        for link in links:
+            if row[0] == link.name:
+                cylinder = Cylinder (float (row[2]), float (row[1]))
+                link.visual.geometry = cylinder
+                link.visual.origin.position[0] = float (row[3])
+                link.visual.origin.position[1] = float (row[4])
+                link.visual.origin.position[2] = float (row[5])
+                link.visual.origin.rotation[0] = float (row[6])
+                link.visual.origin.rotation[1] = float (row[7])
+                link.visual.origin.rotation[2] = float (row[8])
+                
+                # Another <visual> node (in same link) with a different geometry
+                sphere = Sphere (float (row[2]))
+                #link.visual = Visual (sphere)
+                link.visual.geometry = sphere # add ??
+                link.visual.origin.position[0] = float (row[3])
+                link.visual.origin.position[1] = float (row[4]) + (float (row[2]))/2
+                link.visual.origin.position[2] = float (row[5])
+                link.visual.origin.rotation[0] = float (row[6])
+                link.visual.origin.rotation[1] = float (row[7])
+                link.visual.origin.rotation[2] = float (row[8])
+                
+                """sphere_bis = Sphere (float (row[2]))
+                link.visual.geometry = sphere_bis
+                link.visual.origin.position[0] = float (row[3])
+                link.visual.origin.position[1] = float (row[4]) - (float (row[2]))/2
+                link.visual.origin.position[2] = float (row[5])
+                link.visual.origin.rotation[0] = float (row[6])
+                link.visual.origin.rotation[1] = float (row[7])
+                link.visual.origin.rotation[2] = float (row[8])"""
 
 robot.links = links
 urdf = robot.to_xml_string ()
